@@ -7,7 +7,7 @@ Screen::Screen() {
 }
 
 void Screen::postPrint(size_t s, uint8_t min) {
-    int i;
+    uint8_t i;
     if (s < min) {
         for(i = 0; i < min - s; i++) {
             Serial.print(' ');

@@ -7,15 +7,17 @@
 static const uint8_t M_EN = 13;
 static const uint8_t SPEED_DELTA = 10;
 
-#define M1SF 7
-#define M1IN1 5
-#define M1IN2 6
-#define M2SF 11
-#define M2IN1 10
-#define M2IN2 9
+#define M1SF 8
+#define M1IN1 10
+#define M1IN2 9
+#define M2SF 20
+#define M2IN1 23
+#define M2IN2 22
 
 Motor m1(A0, M1SF, M1IN1, M1IN2);
 Motor m2(A1, M2SF, M2IN1, M2IN2);
+
+IntervalTimer uiTimer;
 
 Motor * selectedMotor;
 Screen screen;
@@ -26,9 +28,32 @@ bool ENABLE_STATE = LOW;
 
 void setup() {
   pinMode(M_EN, OUTPUT);
-  digitalWrite(M_EN, ENABLE_STATE);
-   
-  Serial.begin(9600);
+  digitalWrite(M_EN, ENABLE_STATE);   
+  uiSetup();
+
+  uiTimer.begin(uiLoop, 5000);
+
+  m1.setSpeed(100);
+  m1.setDirection(2);
+  m2.setSpeed(100);
+  m2.setDirection(2);
+}
+
+
+
+void loop () {
+  noInterrupts();
+  m1.loop();
+  m2.loop();
+  interrupts();
+}
+
+
+
+#ifdef SHOW_UI
+
+void uiSetup() {
+  Serial.begin(38400);
   while(!Serial) {
     ; //wait
   }
@@ -40,29 +65,14 @@ void setup() {
   screen.pos(3, 5, "m1");
   screen.pos(4, 5, "m2");
   screen.pos(10, 1, "All Enabled=0");
-  m1.setSpeed(100);
-  m1.setDirection(2);
-  m2.setSpeed(100);
-  m2.setDirection(2);
 }
 
-
-
-void loop () {
- #ifdef SHOW_UI
+void uiLoop() {
   check_ui();
-#endif
-  // delay(500);
-
-  m1.loop();
-  m2.loop();
-#ifdef SHOW_UI
   show_motor(3, m1);
   show_motor(4, m2);
-#endif
 }
 
-#ifdef SHOW_UI
 void check_ui() {
   char c;
   if (Serial.available() > 0) {
