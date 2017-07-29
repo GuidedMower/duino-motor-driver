@@ -10,18 +10,23 @@
 
 #define M_EN 13
 #define M1SF 8
-#define M1IN1 10
-#define M1IN2 9
+#define M1IN1 9
+#define M1IN2 10
 #define M2SF 20
 #define M2IN1 23
 #define M2IN2 22
 
 #define SLAVE_ADDRESS 0x04 
 
-struct MasterMessage {
+struct InboundControlMessage {
   uint8_t speed;
   int16_t direction;
 };
+
+struct OutboundStatusMessage {
+  uint8_t status;
+  uint
+}
 
 static const uint8_t SPEED_DELTA = 10;
 static const MotorConfig configs[] = {{A0, M1SF, M1IN1, M1IN2}, {A1, M2SF, M2IN1, M2IN2}};
@@ -73,7 +78,7 @@ void loop () {
 void receiveHandler(int byteCount) {
   char buf[byteCount-1];
   int cmd = 0;
-  MasterMessage m;
+  InboundControlMessage m;
   screen.pos(6, 1);
   if(Wire.available()) {
     cmd = Wire.read();
