@@ -14,7 +14,6 @@ class DualMotor {
         bool _running;
         uint8_t _speed;
         int16_t _direction;
-        
 
 
     public:
@@ -35,6 +34,8 @@ class DualMotor {
 
         void setRunning(bool value);
         bool getRunning();
+
+        uint8_t getStatus();
     
 };
 

@@ -27,9 +27,9 @@ bool DualMotor::getEnable() {
 void DualMotor::loop() {
     motor1->loop();
     motor2->loop();
-    if (!motor2->getStatus() || !motor1->getStatus()) {
-        setRunning(false);
-    }
+    // if (!motor2->getStatus() || !motor1->getStatus()) {
+    //     setRunning(false);
+    // }
 }
 
 void DualMotor::setRunning(bool value) {
@@ -77,4 +77,24 @@ void DualMotor::setSpeed(uint8_t value) {
 
 uint8_t DualMotor::getSpeed() {
     return _speed;
+}
+
+uint8_t DualMotor::getStatus() {
+    uint8_t status = 0;
+    if (motor1->getStatus()) {
+        bitSet(status, 0);
+    }
+    if (motor1->enabled()) {
+        bitSet(status, 1);
+    }
+    if (motor2->getStatus()){
+        bitSet(status, 2);
+    }
+    if (motor1->enabled()) {
+        bitSet(status, 3);
+    }
+    if (_enabled) {
+        bitSet(status, 4);
+    }
+    return status;
 }
