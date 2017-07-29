@@ -15,6 +15,7 @@ class Screen {
         void pos(uint8_t row, uint8_t col, const uint8_t value);
         void pos(uint8_t row, uint8_t col, int value);
         void pos(uint8_t row, uint8_t col, const bool value);
+        void pos(uint8_t row, uint8_t col, int16_t value);
     
     private:
 

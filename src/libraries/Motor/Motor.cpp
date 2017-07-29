@@ -2,33 +2,30 @@
 #include "Motor.h"
 
 
-Motor::Motor(uint8_t fb, uint8_t sf, uint8_t in1, uint8_t in2)
+Motor::Motor(MotorConfig config)
 {
-  pinMode(sf, INPUT_PULLUP);
-  pinMode(in1, OUTPUT);
-  pinMode(in2, OUTPUT);
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
-  analogWrite(in1, 0);
-  analogWrite(in2, 0);
+  _config = config;
+  pinMode(config.sf, INPUT_PULLUP);
+  pinMode(config.in1, OUTPUT);
+  pinMode(config.in2, OUTPUT);
+  digitalWrite(config.in1, LOW);
+  digitalWrite(config.in2, LOW);
+  analogWrite(config.in1, 0);
+  analogWrite(config.in2, 0);
 
-  _sf = sf;
-  _in1 = in1;
-  _in2 = in2;
-  _fb = fb;
   _speed = 0;
   _direction = 1;
-  _pwmPin = in1;
+  _pwmPin = config.in1;
   _enabled = false;
-  _error = false;
+  _status = false;
   _current = 0;
   _changed = false;
   _last = 0;
 }
 
 
-bool Motor::getError() {
-  return _error;
+bool Motor::getStatus() {
+  return _status;
 }
 
 
@@ -66,14 +63,14 @@ void Motor::setDirection(uint8_t value) {
   _direction = constrain(value, 1, 2);
   enable(false); //stop first
   if (_direction == 1) {
-    _pwmPin = _in1;
-    analogWrite(_in2, 0);
-    digitalWrite(_in2, LOW);
+    _pwmPin = _config.in1;
+    analogWrite(_config.in2, 0);
+    digitalWrite(_config.in2, LOW);
   } 
   else if (_direction == 2) {
-    _pwmPin = _in2;
-    analogWrite(_in1, 0);
-    digitalWrite(_in1, LOW);
+    _pwmPin = _config.in2;
+    analogWrite(_config.in1, 0);
+    digitalWrite(_config.in1, LOW);
   }
   enable(old_enable);
 }
@@ -112,9 +109,9 @@ bool Motor::enabled() {
 void Motor::loop() {
   unsigned long now = millis();
   //don't read fb that often
-  if (now - _last >= CURRENT_SENSE_DELAY) { 
-    _current = analogRead(_fb);
+  if (now - _last >= MOTOR_CURRENT_SENSE_DELAY) { 
+    _current = analogRead(_config.fb);
     _last = now;
   }
-  _error = digitalRead(_sf);
+  _status = digitalRead(_config.sf);
 }

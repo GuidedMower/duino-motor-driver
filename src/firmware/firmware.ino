@@ -1,12 +1,14 @@
+#include <Wire.h>
+#include <WireKinetis.h>
 
 #define SHOW_UI 1
 
-#include <Motor.h>
+#include <DualMotor.h>
+
 #include <Screen.h>
 
-static const uint8_t M_EN = 13;
-static const uint8_t SPEED_DELTA = 10;
 
+#define M_EN 13
 #define M1SF 8
 #define M1IN1 10
 #define M1IN2 9
@@ -14,12 +16,22 @@ static const uint8_t SPEED_DELTA = 10;
 #define M2IN1 23
 #define M2IN2 22
 
-Motor m1(A0, M1SF, M1IN1, M1IN2);
-Motor m2(A1, M2SF, M2IN1, M2IN2);
+#define SLAVE_ADDRESS 0x04 
 
-IntervalTimer uiTimer;
+struct MasterMessage {
+  uint8_t speed;
+  int16_t direction;
+};
 
-Motor * selectedMotor;
+static const uint8_t SPEED_DELTA = 10;
+static const MotorConfig configs[] = {{A0, M1SF, M1IN1, M1IN2}, {A1, M2SF, M2IN1, M2IN2}};
+DualMotor dm(M_EN, configs);
+// Motor m1({A0, M1SF, M1IN1, M1IN2});
+// Motor m2({A1, M2SF, M2IN1, M2IN2});
+
+unsigned long ui_last_millis;
+unsigned long now_millis;
+
 Screen screen;
 
 bool BLINK_STATE = false;
@@ -27,25 +39,78 @@ bool ENABLE_STATE = LOW;
 
 
 void setup() {
-  pinMode(M_EN, OUTPUT);
-  digitalWrite(M_EN, ENABLE_STATE);   
+  
+  Wire.begin(SLAVE_ADDRESS);
+  Wire.onReceive(receiveHandler);
+  Wire.onRequest(requestHandler);
+#ifdef SHOW_UI   
   uiSetup();
-
-  uiTimer.begin(uiLoop, 5000);
-
-  m1.setSpeed(100);
-  m1.setDirection(2);
-  m2.setSpeed(100);
-  m2.setDirection(2);
+#endif
+  dm.setDirection(0);
+  dm.setSpeed(100);
+  // m1.setSpeed(100);
+  // m1.setDirection(2);
+  // m2.setSpeed(100);
+  // m2.setDirection(2);
 }
 
 
 
 void loop () {
-  noInterrupts();
-  m1.loop();
-  m2.loop();
-  interrupts();
+
+  dm.loop();
+  // m1.loop();
+  // m2.loop();
+  now_millis = millis();
+#ifdef SHOW_UI
+  if (now_millis - ui_last_millis > 500) {
+    uiLoop();
+    ui_last_millis = now_millis;
+  }
+#endif
+}
+
+void receiveHandler(int byteCount) {
+  char buf[byteCount-1];
+  int cmd = 0;
+  MasterMessage m;
+  screen.pos(6, 1);
+  if(Wire.available()) {
+    cmd = Wire.read();
+    Serial.print(cmd);
+    Serial.print(">");
+  }
+  if (cmd == 5) { //speed + direction
+    while(Wire.available()) {
+      Wire.readBytes(buf, sizeof(buf));
+    }
+    memcpy(&m, buf, sizeof(m));
+    screen.pos(7,1,"speed=");
+    Serial.print(m.speed);
+    Serial.print(" direction=");
+    Serial.print(m.direction);
+    Serial.print(" factor=");
+    Serial.print(dm.factor);
+    Serial.print("              ");
+    dm.setDirection(m.direction); 
+    dm.setSpeed(m.speed);
+  }
+  else if (cmd == 9) { //toggleEnable
+    toggleEnable();
+    dm.setRunning(ENABLE_STATE); //toggleRunning
+  }
+}
+
+void requestHandler() {
+  Wire.write("hello");
+}
+
+void toggleEnable() {
+  ENABLE_STATE = !ENABLE_STATE;
+  dm.setEnable(ENABLE_STATE);
+#ifdef SHOW_UI
+  screen.pos(10, 15, ENABLE_STATE);
+#endif
 }
 
 
@@ -60,18 +125,25 @@ void uiSetup() {
   screen.init();
   Serial.setTimeout(100);
 
-  screen.pos(1,1, "X   Motor  Enabled  Error  Current  Speed Direction");
+  screen.pos(1,1, "X   Motor  Enabled  Status  Current  Speed Direction");
   screen.pos(2,1, "=================================================");
   screen.pos(3, 5, "m1");
   screen.pos(4, 5, "m2");
-  screen.pos(10, 1, "All Enabled=0");
+  
+  screen.pos(9, 1,  "Direction =   0");
+  screen.pos(10, 1, "All Enabled = 0");
+
+
 }
 
 void uiLoop() {
   check_ui();
-  show_motor(3, m1);
-  show_motor(4, m2);
+  show_motor(3, dm.motor1);
+  show_motor(4, dm.motor2);
+  screen.pos(9, 15, dm.getDirection());
 }
+
+
 
 void check_ui() {
   char c;
@@ -79,78 +151,34 @@ void check_ui() {
     
     c = char(Serial.read());
     if (c == '9') {
-      ENABLE_STATE = !ENABLE_STATE;
-      digitalWrite(M_EN, ENABLE_STATE);
-      screen.pos(10, 13, ENABLE_STATE);
-    }
-    else if (c == '1') {
-      // m1.enable(!m1.enabled());
-      selectedMotor = &m1;
-      screen.pos(3, 1, ">");
-      screen.pos(4, 1, " ");
-    }
-    else if (c == '2') {
-      // m2.enable(!m2.enabled());
-      selectedMotor = &m2;
-      screen.pos(3, 1, " ");
-      screen.pos(4, 1, ">");
+      toggleEnable();
     }
     else if (c == 'a') {
-      selectedMotor = NULL;
-      screen.pos(3, 1, " ");
-      screen.pos(4, 1, " ");
-    }
-    else if (c == '+') {
-      if (selectedMotor != NULL) {
-        speed_change(selectedMotor, SPEED_DELTA);
-      }
-      else {
-        speed_change(&m1, SPEED_DELTA);
-        speed_change(&m2, SPEED_DELTA);
-      }
-    }
-    else if (c == '-') {
-      if (selectedMotor != NULL) {
-        speed_change(selectedMotor, SPEED_DELTA * -1);
-      }
-      else {
-        speed_change(&m1, SPEED_DELTA * -1);
-        speed_change(&m2, SPEED_DELTA * -1);
-      }
+      dm.setDirection(dm.getDirection() - 2);
     }
     else if (c == 'd') {
-      if (selectedMotor != NULL) {
-        selectedMotor->flipDirection();
-      }
-      else {
-        m1.flipDirection();
-        m2.flipDirection();
-      }
+      dm.setDirection(dm.getDirection() + 2);
+    }
+    else if (c == 'w') {
+      dm.setSpeed(dm.getSpeed() + SPEED_DELTA);
+    }
+    else if (c == 's') { 
+      dm.setSpeed(dm.getSpeed() + SPEED_DELTA * -1);
     }
     else if (c == ' ') {
-      if (selectedMotor != NULL) {
-        selectedMotor->enable(!selectedMotor->enabled());
-      }
-      else {
-        m1.enable(!m1.enabled());
-        m2.enable(!m2.enabled());
-      }
+      dm.setRunning(!dm.getRunning());
     }
   }
 }
 
 
-void speed_change(Motor * m, uint8_t delta) {
-  m->setSpeed(m->getSpeed() + delta);
-}
 
-
-void show_motor(uint8_t line, Motor &m) {
+void show_motor(uint8_t line, Motor *m) {
   
-  screen.pos(line, 12, m.enabled());
-  screen.pos(line, 21, m.getError());
-  screen.pos(line, 28, m.getCurrent());
-  screen.pos(line, 37, m.getSpeed());
-  screen.pos(line, 43, m.getDirection());
+  screen.pos(line, 12, m->enabled());
+  screen.pos(line, 21, m->getStatus());
+  screen.pos(line, 29, m->getCurrent());
+  screen.pos(line, 38, m->getSpeed());
+  screen.pos(line, 44, m->getDirection());
 }
 #endif

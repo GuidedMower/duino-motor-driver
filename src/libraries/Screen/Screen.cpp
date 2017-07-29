@@ -72,3 +72,8 @@ void Screen::pos(uint8_t row, uint8_t col, const bool value) {
     postPrint(Serial.print(value), 4);
 }
 
+void Screen::pos(uint8_t row, uint8_t col, int16_t value) {
+    pos(row, col);
+    postPrint(Serial.print(value), 4);
+}
+
