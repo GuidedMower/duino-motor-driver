@@ -36,7 +36,7 @@ DualMotor dm(M_EN, configs);
 
 
 unsigned long now_millis;
-unsigned long em_break_millis;
+unsigned long em_brake_millis;
 Screen screen;
 
 bool BLINK_STATE = false;
