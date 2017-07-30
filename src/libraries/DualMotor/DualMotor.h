@@ -5,19 +5,19 @@
 #ifndef DualMotor_h
 #define DualMotor_h
 
-
+static const int DUALMOTOR_MAX_SPEED = 255;
 
 class DualMotor {
     private:
         uint8_t _en;
         bool _enabled;
         bool _running;
-        uint8_t _speed;
+        int16_t _speed;
         int16_t _direction;
+        void sendVector();
 
 
     public:
-        float factor;
         Motor *motor1;
         Motor *motor2;
         DualMotor(uint8_t en, const MotorConfig *configs);
@@ -26,8 +26,8 @@ class DualMotor {
         void setEnable(bool value);
         bool getEnable();
 
-        void setSpeed(uint8_t value);
-        uint8_t getSpeed();
+        void setSpeed(int16_t value);
+        int16_t getSpeed();
 
         void setDirection(int16_t value);
         int16_t getDirection();

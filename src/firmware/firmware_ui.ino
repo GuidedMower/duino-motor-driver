@@ -1,7 +1,9 @@
 
 #ifdef SHOW_UI
 
-void uiSetup() {
+unsigned long ui_last_millis;
+
+void setup_ui() {
   Serial.begin(38400);
   while(!Serial) {
     ; //wait
@@ -10,26 +12,40 @@ void uiSetup() {
   Serial.setTimeout(100);
 
   screen.pos(1,1, "X   Motor  Enabled  Status  Current  Speed Direction");
-  screen.pos(2,1, "=================================================");
+  screen.pos(2,1, "====================================================");
   screen.pos(3, 5, "m1");
   screen.pos(4, 5, "m2");
+  screen.pos(6, 5, "ALL");
   
-  screen.pos(9, 1,  "Direction =   0");
-  screen.pos(10, 1, "All Enabled = 0");
-
 
 }
 
-void uiLoop() {
-  check_ui();
+void loop_ui() {
+  if (now_millis - ui_last_millis > 500) {
+    check_ui_inputs();
+    draw_ui();
+    ui_last_millis = now_millis;
+  }
+}
+
+void draw_ui() {
   show_motor(3, dm.motor1);
   show_motor(4, dm.motor2);
-  screen.pos(9, 15, dm.getDirection());
+  screen.pos(6, 12, dm.getEnable());
+  screen.pos(6, 38, dm.getSpeed());
+  screen.pos(6, 44, dm.getDirection());
 }
 
 
+void show_motor(uint8_t line, Motor *m) {
+  screen.pos(line, 12, m->enabled());
+  screen.pos(line, 21, m->getStatus());
+  screen.pos(line, 29, m->getCurrent());
+  screen.pos(line, 38, m->getSpeed());
+}
 
-void check_ui() {
+
+void check_ui_inputs() {
   char c;
   if (Serial.available() > 0) {
     
@@ -57,12 +73,4 @@ void check_ui() {
 
 
 
-void show_motor(uint8_t line, Motor *m) {
-  
-  screen.pos(line, 12, m->enabled());
-  screen.pos(line, 21, m->getStatus());
-  screen.pos(line, 29, m->getCurrent());
-  screen.pos(line, 38, m->getSpeed());
-  screen.pos(line, 44, m->getDirection());
-}
 #endif

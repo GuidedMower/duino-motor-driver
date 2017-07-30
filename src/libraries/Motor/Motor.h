@@ -18,9 +18,9 @@ struct MotorConfig {
 class Motor {
     private:
         uint8_t _pwmPin;
+        uint8_t _pwmSpeed;
         bool _changed;
-        uint8_t _speed;
-        uint8_t _direction;
+        int16_t _speed;
         bool _status;
         int _current;
         bool _enabled;
@@ -30,14 +30,10 @@ class Motor {
     public:
         Motor(MotorConfig config);
         bool getStatus();
-        uint8_t getSpeed();
-        void setSpeed(uint8_t value);
+        int16_t getSpeed();
+        void setSpeed(int16_t value);
         int getCurrent();
-       
-        uint8_t getDirection();
-        void setDirection(uint8_t value);
         void loop();
-        void flipDirection();
         void enable(bool value);
         bool enabled();
 };

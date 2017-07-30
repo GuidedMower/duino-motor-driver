@@ -16,20 +16,10 @@
 #define SLAVE_ADDRESS 0x04 
 
 
-// template< typename T >
-//  union Serialize{
-//    T data;
-//    uint8_t bytes[ sizeof( T ) ];
-   
-//    const uint8_t *begin(){ return bytes; }
-//    const uint8_t *end(){ return bytes + sizeof( T ); }
-// };
-
-
 typedef struct  {
-  uint8_t speed;
+  int16_t speed;
   int16_t direction;
-} InboundControlMessage;
+} inbound_t;
 
 typedef struct  {
   uint8_t cmd;
@@ -39,14 +29,45 @@ typedef struct  {
 } outbound_t;
 
 
-// typedef Serialize< outbound_t > outboundframe_t;
-
-
 
 static const uint8_t SPEED_DELTA = 10;
 static const MotorConfig configs[] = {{A0, M1SF, M1IN1, M1IN2}, {A1, M2SF, M2IN1, M2IN2}};
 DualMotor dm(M_EN, configs);
-// Motor m1({A0, M1SF, M1IN1, M1IN2});
-// Motor m2({A1, M2SF, M2IN1, M2IN2});
 
 
+unsigned long now_millis;
+unsigned long em_break_millis;
+Screen screen;
+
+bool BLINK_STATE = false;
+bool ENABLE_STATE = LOW;
+uint8_t current_cmd = 0;
+outbound_t outbound;
+
+
+void setup() {
+  setup_i2c();
+  now_millis = millis();
+  em_brake_millis = now_millis + 1000;
+  dm.setDirection(0);
+  dm.setSpeed(0);
+
+#ifdef SHOW_UI   
+  setup_ui();
+#endif
+}
+
+
+
+void loop () {
+  now_millis = millis();
+  if (now_millis > em_brake_millis) {
+    dm.setEnable(false);
+  }
+  dm.loop();
+  // m1.loop();
+  // m2.loop();
+#ifdef SHOW_UI
+  loop_ui();
+#endif
+}

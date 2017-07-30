@@ -45,37 +45,38 @@ bool DualMotor::getRunning() {
 void DualMotor::setDirection(int16_t value) {
     if (value == _direction) return;
     _direction = value;
-    if (_direction < -254) {
-        _direction = -254;
-    }
-    else if (_direction > 254) {
-        _direction = 254;
-    }
-    setSpeed(getSpeed());
+    sendVector();
 }
 
 int16_t DualMotor::getDirection() {
     return _direction;
 }
 
-void DualMotor::setSpeed(uint8_t value) {
+void DualMotor::setSpeed(int16_t value) {
+    if (_speed == value) return;
     _speed = value;
-    uint8_t s1 = _speed;
-    uint8_t s2 = _speed;
+    sendVector();
+}
+
+void DualMotor::sendVector() {
+    int32_t base_speed = DUALMOTOR_MAX_SPEED * _speed;
+    int32_t s1 = base_speed;
+    int32_t s2 = base_speed;
+
 
     if (_direction < 0) {
-        factor = float(_direction) / 254.0 * - 1;
-        s1 = _speed - int(factor * float(_speed));
+        s1 = s1 + (DUALMOTOR_MAX_SPEED * _direction * 2); 
     }
     else if (_direction > 0) {
-        factor = float(_direction) / 254.0;
-        s2 = _speed - int(factor * float(_speed));
+        s2 = s2 - (DUALMOTOR_MAX_SPEED * _direction * 2);
     }
+    s1 = s1 / 1000;
+    s2 = s2 / 1000;
     motor1->setSpeed(s1);
     motor2->setSpeed(s2);
 }
 
-uint8_t DualMotor::getSpeed() {
+int16_t DualMotor::getSpeed() {
     return _speed;
 }
 

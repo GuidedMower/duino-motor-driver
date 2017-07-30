@@ -14,8 +14,8 @@ Motor::Motor(MotorConfig config)
   analogWrite(config.in2, 0);
 
   _speed = 0;
-  _direction = 1;
   _pwmPin = config.in1;
+  _pwmSpeed = 0;
   _enabled = false;
   _status = false;
   _current = 0;
@@ -34,56 +34,36 @@ int Motor::getCurrent() {
 }
 
 
-uint8_t Motor::getSpeed() {
+int16_t Motor::getSpeed() {
   return _speed;
 }
 
 
-void Motor::setSpeed(uint8_t value) {
+void Motor::setSpeed(int16_t value) {
   if (value == _speed) {
     return; //if no change do nothing
   }
-  _speed = constrain(value, 0, 255);
-  if (_enabled) {
-    analogWrite(_pwmPin, _speed);
-  }
-}
+  _speed = constrain(value, -255, 255);
 
-
-uint8_t Motor::getDirection() {
-  return _direction;
-}
-
-
-void Motor::setDirection(uint8_t value) {
-  if (value == _direction) {
-    return; //if no change do nothing
-  }
-  bool old_enable = _enabled;
-  _direction = constrain(value, 1, 2);
-  enable(false); //stop first
-  if (_direction == 1) {
+  if (_speed > 0) {
     _pwmPin = _config.in1;
+    _pwmSpeed = _speed;
     analogWrite(_config.in2, 0);
     digitalWrite(_config.in2, LOW);
-  } 
-  else if (_direction == 2) {
+  }
+  else if (_speed < 0) {
     _pwmPin = _config.in2;
+    _pwmSpeed = _speed * -1;
     analogWrite(_config.in1, 0);
     digitalWrite(_config.in1, LOW);
   }
-  enable(old_enable);
-}
-
-
-void Motor::flipDirection() {
-  if (_direction == 1) {
-    _direction = 2;
-  }
   else {
-    _direction = 1;
+    _pwmSpeed = 0;
   }
-  setDirection(_direction);
+
+  if (_enabled) {
+    analogWrite(_pwmPin, _pwmSpeed);
+  }
 }
 
 
